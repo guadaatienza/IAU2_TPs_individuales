@@ -1,7 +1,92 @@
 ---
 title: "IAU2 TP1"
 author: "Guadalupe Atienza Rela"
-date: "10/3/2021"
+date: "3/10/2021"
 output: html_document
 ---
+
+En este trabajo manipularemos datos relativos al acceso informal al hábitat urbano en la Ciudad de Buenos Aires. Utilizaremos tres datasets espaciales del portal de datos abiertos del GCBA. En esta primera parte, nos abocaremos a su exploración y un primer procesamiento de datos.
+
+Comenzamos activando los paquetes que utilizaremos para importar, ordenar y transformar estos datos:
+
+```{r}
+library(tidyverse)
+library(sf)
+library(janitor)
+```
+
+## **1.Importación y exploración de datos**
+
+A continuación, procederemos a importar y explorar la estructura de los tres sets de datos espaciales con los que vamos a trabajar.
+
+* ***Barrios precarios o informales***:
+
+```{r}
+barriosp <- st_read("data/barrios_vulnerables_caba/barrios_vulnerables.shp")
+```
+* ***Datos sociodemográficos por radio censal***:
+
+```{r}
+datos_censales_xradio <- st_read("data/caba_radios_censales.geojson")
+```
+* ***Comunas***:
+
+```{r}
+comunas_caba <- st_read("data/barrios_caba.geojson")
+```
+
+Como puede advertirse, se trata de tres dataframes de datos espaciales. El primero de ellos contiene datos de las ***villas, asentamientos, conjuntos habitacionales y núcleos habitacionales transitorios (NHT)*** de la ciudad de Buenos Aires; el segundo, ***datos sociodemográficos*** correspondienteas al último censo para cada uno de los radios censales de la ciudad; y, finalmente, el tercero, las geometrías de los polígonos de sus ***comunas***. Según puede apreciarse dos de nuestros dataframes tienen un sistama de coordenadas de referencia (CRS) geodésicos y uno de ellos, proyectado (ya que no lo hemos conseguido en su versión geodésica). Como en este trabajo estaremos uniendo datos a través de sus ubicaciones espaciales, precisamos compatibilizar los CRS de los dataframes con los que trabajaremos entre sí:
+
+```{r}
+barriosp <- st_transform(barriosp, crs=4326)
+```
+
+## **2.Ordenamiento y transformación de datos** 
+
+Una vez que contamos con dataframes con el mismo CRS, podemos realizar operaciones entre nuestros datasets a partir de sus geometrías. Para ello utilizaremos las funciones st_join(), st_union() y st_intersection entre otras del paquete sf. Asimismo, podemos simplificar los nuevos dataframes, resultantes de estas operaciones, tomando las variables y las observaciones que nos interesan, seleccionando las columnas y colapsando las filas que vamos a utilizar mediante las funciones group_by(), summarise() y pivot_wider(). Finalmenente utilizaremos otras funciones de los paquetes Tidyverse y Janitor para limpiar y ordenar nuestros datos.  
+
+* En la tabla que sigue a continuación, por ejemplo, podemos observar la cantidad de barrios percarios e informales por comuna, según su tipo:   
+
+```{r}
+resumen_barrios_xcomuna  <-barriosp %>% 
+                         st_join(comunas_caba) %>% 
+                         clean_names() %>%    
+                         st_set_geometry(NULL) %>% 
+                         group_by(comuna, tipo_asent) %>% 
+                         summarise(cantidad=n()) %>% 
+                         pivot_wider(names_from=tipo_asent, 
+                                     values_from=cantidad) %>% 
+                         mutate(comuna=paste("Comuna ", comuna)) %>% 
+                         mutate_all(~replace(., is.na(.), 0))
+
+resumen_barrios_xcomuna
+```
+
+* La siguiente tabla muestra la cantidad total de barrios precarios e informales según su tipo y la superficie total que ocupan según esta tipología:
+
+```{r}
+resumen_barrios_xtipo  <-barriosp %>% 
+                         st_set_geometry(NULL) %>%
+                         rename(tipo=TIPO_ASENT) %>%  
+                         group_by(tipo) %>% 
+                         summarise(cantidad=n(), superficie=sum(Superficie))
+
+resumen_barrios_xtipo
+```
+* Finalmente, la tabla que se presenta a continuación resume los principales datos demográficos de los barrios precarios e informales de la ciudad para cada una de sus comunas. Este dataframe, en el que hemos resumido nuestras variables de interés (columnas), nos muestra cuántas viviendas, cuántos hogares hay y qué cantidad de población vive en villas, asentamientos, conjuntos habitacionales y NHT, colapsándolos en una sóla oobservación (fila) para cada comuna.
+
+```{r}
+poligono_barriosp <- st_union(barriosp)
+datos_censales_barriosp <- datos_censales_xradio %>%  
+                           st_intersection(poligono_barriosp) %>% 
+                           st_set_geometry(NULL) %>%
+                           clean_names() %>% 
+                           group_by(comuna) %>% 
+                           summarise(poblacion=sum(poblacion), 
+                                     hogares=sum(hogares),
+                                     viviendas=sum(viviendas)) %>% 
+                           mutate(comuna=paste("Comuna ", comuna))   
+datos_censales_barriosp
+```
+
 
