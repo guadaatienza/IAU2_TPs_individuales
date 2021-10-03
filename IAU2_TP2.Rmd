@@ -1,0 +1,6 @@
+---
+title: "IAU2_TP2"
+author: "Guadalupe Atienza Rela"
+date: "3/10/2021"
+output: html_document
+---
