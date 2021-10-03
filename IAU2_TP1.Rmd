@@ -45,7 +45,7 @@ barriosp <- st_transform(barriosp, crs=4326)
 
 Una vez que contamos con dataframes con el mismo CRS, podemos realizar operaciones entre nuestros datasets a partir de sus geometrías. Para ello utilizaremos las funciones st_join(), st_union() y st_intersection entre otras del paquete sf. Asimismo, podemos simplificar los nuevos dataframes, resultantes de estas operaciones, tomando las variables y las observaciones que nos interesan, seleccionando las columnas y colapsando las filas que vamos a utilizar mediante las funciones group_by(), summarise() y pivot_wider(). Finalmenente utilizaremos otras funciones de los paquetes Tidyverse y Janitor para limpiar y ordenar nuestros datos.  
 
-* En la tabla que sigue a continuación, por ejemplo, podemos observar la cantidad de barrios percarios e informales por comuna, según su tipo:   
+* En la tabla que sigue a continuación, por ejemplo, podemos observar la ***cantidad*** de barrios percarios e informales por **comuna**, según su **tipo**:   
 
 ```{r}
 resumen_barrios_xcomuna  <-barriosp %>% 
@@ -62,7 +62,7 @@ resumen_barrios_xcomuna  <-barriosp %>%
 resumen_barrios_xcomuna
 ```
 
-* La siguiente tabla muestra la cantidad total de barrios precarios e informales según su tipo y la superficie total que ocupan según esta tipología:
+* La siguiente tabla muestra la ***cantidad total*** de barrios precarios e informales según su tipo y la ***superficie total*** que ocupan según esta tipología:
 
 ```{r}
 resumen_barrios_xtipo  <-barriosp %>% 
@@ -73,7 +73,7 @@ resumen_barrios_xtipo  <-barriosp %>%
 
 resumen_barrios_xtipo
 ```
-* Finalmente, la tabla que se presenta a continuación resume los principales datos demográficos de los barrios precarios e informales de la ciudad para cada una de sus comunas. Este dataframe, en el que hemos resumido nuestras variables de interés (columnas), nos muestra cuántas viviendas, cuántos hogares hay y qué cantidad de población vive en villas, asentamientos, conjuntos habitacionales y NHT, colapsándolos en una sóla oobservación (fila) para cada comuna.
+* Finalmente, la tabla que se presenta a continuación resume los principales datos demográficos de los barrios precarios e informales de la ciudad para cada una de sus comunas. Este dataframe, en el que hemos resumido nuestras variables de interés (columnas), nos muestra cuántas ***viviendas***, cuántos ***hogares*** hay y qué cantidad de ***población*** vive en villas, asentamientos, conjuntos habitacionales y NHT, colapsándolos en una sóla oobservación (fila) para cada comuna.
 
 ```{r}
 poligono_barriosp <- st_union(barriosp)
