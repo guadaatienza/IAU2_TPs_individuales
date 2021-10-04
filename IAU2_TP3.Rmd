@@ -6,7 +6,7 @@ output: html_document
 ---
 
 ## **Introducción**
-En este trabajo volveremos sobre los datos relativos al acceso informal al hábitat urbano en la Ciudad de Buenos Aires que exploramos en el TP1. Utilizaremos los tres mismos datasets espaciales del portal de datos abiertos del GCBA. En esta segunda parte, trabajaremos con visualizaciones, para lo cual será necesario realizar alguans transformaciones adicionales sobre nuestros datos.
+En este trabajo volveremos sobre los datos que exploramos en el TP1, en relación al acceso informal al hábitat urbano en la Ciudad de Buenos Aires. En esta opotunidad, trabajaremos con visualizaciones, para lo cual será necesario realizar alguans transformaciones adicionales sobre los mismos.
 
 Comenzamos activando los paquetes que utilizaremos para importar, ordenar,  transformar y visualizar estos datos e importando los sets de datos a utilizar:
 
@@ -18,6 +18,8 @@ library(ggmap)
 library(patchwork)
 ```
 
+Seguidamente, heemos importado los tres data sets con los que vamos a trabajar: se trata de tres mismos sets de datos espaciales del portal de datos abiertos del GCBA que hemos utilizado en el trabajo anterior. El primero de ellos contiene datos de las ***villas, asentamientos, conjuntos habitacionales y núcleos habitacionales transitorios (NHT)*** de la ciudad de Buenos Aires; el segundo, ***datos sociodemográficos*** correspondienteas al último censo para cada uno de los radios censales de la ciudad; y, finalmente, el tercero, las geometrías de los polígonos de sus ***comunas***. 
+
 ```{r}
 barriosp <- st_read("data/barrios_vulnerables_caba/barrios_vulnerables.shp")
 barriosp <- st_transform(barriosp, crs=4326)
@@ -27,9 +29,27 @@ comunas_caba <- st_read("data/comunas_caba.geojson")
 
 ## **Visualizaciones**
 
-### ***i) Gráfico de Barras***
+Como es sabido, existen diversas formas de acceso informal y precario al habitat urano. Se trata de distintas situaciones de tenencia ***informal*** que ponen en juego diferentes estrategias individuales o colectivas que intentan resolver, aunque siempre de manera ***precaria***, el **problema del acceso al hábitat en la ciudad**. Las primeras se insertan en la trama urbana existente (ocupaciones de inmuebles abandonados, alquiler de piezas en inquilinatos, etc), mientras las segundas, en las cuales nos enfocaremos en este trabajo, corresponden al desarrollo de nuevas urbanizaciones. Estas pueden haber surgido inicialmente como formas de urbanización informal, como es el caso de las ***villas*** y ***asentamientos***, o no, como es el caso de los barrios que tienen su origen en ***conjuntos habitacionales*** construidos por el Estado, ya sea que éstos hubieran sido pensados como alojamientos ***transitorios*** que luego se consolidaron o que, siendo de carácter ***definitivo***, tuvieron procesos de escrituración inconclusos y sufrieron nuevas ocupaciones. 
 
-En el gráfico de barras que se presenta a continuación puede verse que la mayor proporción de población, hogares y viviendas de villas, asentamientos, conjuntos habitacionales y núcleos habitacionales transitorios (NHT) se concentra en las comunas 8, 4, 7, 1 y 9.
+Comenzamos entonces, por identificar estos barrios en la ciudad:
+
+```{r}
+bbox_comunas <- as.numeric(st_bbox(comunas_caba))
+mapa_caba <- get_stamenmap(bbox = bbox_comunas, maptype = "terrain-lines", zoom=12) 
+```
+
+```{r, fig.width=10, fig.height=5}
+ggmap(mapa_caba)+ 
+  geom_sf(data=comunas_caba, color="darkmagenta", fill= NA, inherit.aes = FALSE)+
+  geom_sf(data=barriosp, color="darkmagenta", inherit.aes = FALSE)+
+  theme_void() +
+    theme(plot.title = element_text(face="bold", size=15)) +
+    labs(title = "Mapa 1. Barrios precarios e informales de la CABA", 
+    subtitle = "Villas, asentamientos, cojuntos habitacionales y NHT por comuna",
+    caption = "fuente: Buenos Aires Data")
+```
+
+Para las visualizaciones que presentamos a continuación, hemos trabajado con datos demográficos del CENSO de 2010 correspondientes a los radios censales comprendidos dentro de los polígonos donde se emplazan estos barrios:
 
 ```{r}
 poligono_barriosp <- st_union(barriosp)
@@ -39,6 +59,11 @@ datos_censales_bp <- datos_censales_xradio %>%
                      clean_names() %>% 
                      mutate(comuna=paste("Comuna ", comuna)) 
 ```
+
+
+### ***i) Gráfico de Barras***
+
+En el gráfico de barras que se presenta a continuación puede verse que la mayor proporción de ***población***, ***hogares*** y ***viviendas*** de villas, asentamientos, conjuntos habitacionales y núcleos habitacionales transitorios (NHT) se concentra en las **comunas 8, 4, 7, 1 y 9**.
 
 ```{r fig.width=12, fig.height=6}
 ggplot()+
@@ -57,6 +82,7 @@ ggplot()+
                         y=cantidad, x=comuna),
             stat="identity", position="dodge", width = 0.8) +
     scale_fill_viridis_d()+
+    scale_y_continuous(breaks = seq(0, 140, 20))+
     theme_minimal() +
     theme(plot.title = element_text(face="bold", size=15)) +
     theme(axis.title.x = element_text(face="bold", colour="darkgray", size=12)) +
@@ -99,6 +125,7 @@ prom_hogares_por_vivienda
 prom_hogaresxvivienda_caba <- sum(datos_censales_xradio$HOGARES)/sum(datos_censales_xradio$VIVIENDAS)
 prom_hogaresxvivienda_caba 
 ```
+
 * Tamaño promedio del hogar en barrios precarios e informales:
 
 ```{r}
@@ -107,6 +134,7 @@ tamaño_prom_h
 ```
 
 * Tamaño promedio del hogar en CABA:
+
 ```{r}
 tamaño_prom_h_caba <- sum(datos_censales_xradio$POBLACION)/sum(datos_censales_xradio$HOGARES)
 tamaño_prom_h_caba  
@@ -142,38 +170,36 @@ datos_bp_xcomuna_geo <- comunas_caba %>%
 ```
 
 ```{r}
-bbox_comunas <- as.numeric(st_bbox(comunas_caba))
-mapa_caba <- get_stamenmap(bbox = bbox_comunas, maptype = "terrain-lines", zoom=12) 
-```
-
-```{r}
-mapa1 <- ggmap(mapa_caba)+ 
-  geom_sf(data=poblacion_bp_xcomuna_geo, aes(fill=poblacion/1000), inherit.aes = FALSE, alpha=0.9)+
+mapa2.1 <- ggmap(mapa_caba)+ 
+  geom_sf(data=poblacion_bp_xcomuna_geo, aes(fill=poblacion/1000), 
+          inherit.aes = FALSE, alpha=0.9)+
+  geom_sf(data=barriosp, color="grey25", fill="grey25", inherit.aes = FALSE)+
   scale_fill_viridis_c() +
   theme_void() +
     theme(plot.title = element_text(face="bold", size=15)) +
-    labs(title = "Mapa 1. Segregacion espacial en CABA", 
+    labs(title = "Mapa 2. Segregacion espacial en CABA", 
     subtitle = "Poblacion en barrios precarios e informales por comuna",
     caption = "fuente: Buenos Aires Data",
     fill = "cant. en miles")
 ```
 
 ```{r}
-mapa2 <- ggmap(mapa_caba)+ 
-  geom_sf(data=datos_bp_xcomuna_geo, aes(fill=cantidad), inherit.aes = FALSE, alpha=0.9)+
+mapa2.2 <- ggmap(mapa_caba)+ 
+  geom_sf(data=datos_bp_xcomuna_geo, aes(fill=cantidad/1000), 
+          inherit.aes = FALSE, alpha=0.9)+
   scale_fill_viridis_c() +
+  geom_sf(data=barriosp, color="grey25", fill="grey25", inherit.aes = FALSE)+
   theme_void() +
     theme(plot.title = element_text(face="bold", size=15)) +
-    labs(title = "Mapa 2. Segregacion espacial en CABA", 
-    subtitle = "Cantidad de viviendas y hogares en barrios
+    labs(subtitle = "Cantidad de viviendas y hogares en barrios
     precarios e informales por comuna",
     caption = "fuente: Buenos Aires Data",
-    fill = NULL)+
+    fill = "cant. en miles")+
     facet_wrap(~indicador)
 ```
 
 ```{r, fig.width=5, fig.height=9}
-(mapa1/mapa2)
+(mapa2.1/mapa2.2)
 ```
 
 Los mapa coropléticos permite identificar patrones espaciales con facilidad. Es así que nos muestran mucho más inmediantamente que el gráfico de barras que la concentración de la población que vive en barrios precarios e informales se localiza en la zona sur y este de la ciudad, poniendo de manifiesto la existencia de un patrón evidente de segregación socioespacial.  
