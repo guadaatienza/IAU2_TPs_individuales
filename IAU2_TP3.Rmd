@@ -113,7 +113,7 @@ tamaño_prom_h_caba
 ```
 En efecto, ambos indicadores resultan mayores para las villas, asentamientos, complejos habitacionales y NHT que para la ciudad tomada en su conjunto. Si bien para un análisis más completo del grado de hacinamiento en la ciudad deberíamos considerar el promedio de personas por dormitorio y/o por superficie, estos indicadores ya nos dan una idea de que el hacinamiento se concentra en mayor proporción, en promedio, en estos barrios. 
 
-### ***ii) Mapa Coroplético***
+### ***ii) Mapas Coropléticos***
 
 A continuación mapearemos estos mismos datos sobre la ciudad de buenos aires. En los mapas de coropletas que se presetan más abajo puede observarse las cantidades de viviendas de viviendas emplazadas así como de hogares y población que habita en las villas, asentamientos, conjuntos habitacionales y NHT de la ciudad de Buenos Aires por comuna.
 
@@ -176,4 +176,4 @@ mapa2 <- ggmap(mapa_caba)+
 (mapa1/mapa2)
 ```
 
-El mapa coroplético permite identificar patrones espaciales con facilidad. Es así que nos muestra mucho más inmediantamente que el gráfico de barras que la concentración de la población que vive en villas y asentamientos se localiza en la zona sur y este de la ciudad, poniendo de manifiesto la existencia de un patrón evidente de segregación socioespacial.  
+Los mapa coropléticos permite identificar patrones espaciales con facilidad. Es así que nos muestran mucho más inmediantamente que el gráfico de barras que la concentración de la población que vive en barrios precarios e informales se localiza en la zona sur y este de la ciudad, poniendo de manifiesto la existencia de un patrón evidente de segregación socioespacial.  
