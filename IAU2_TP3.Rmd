@@ -1,7 +1,7 @@
 ---
 title: "IAU2 TP3"
 author: "Guadalupe Atienza Rela"
-date: "10/3/2021"
+date: "3/10/2021"
 output: html_document
 ---
 
@@ -64,7 +64,7 @@ ggplot()+
     labs(title = "Gráfico 1. Acceso informal al hábitat urbano en CABA", 
     subtitle = "Viviendas, hogares y población de villas, asentamientos, conjuntos habitacionales y NHT por comuna",
     x = "Comuna",
-    y = "Población (en miles de habitantes",
+    y = "Población (en miles de habitantes)",
     caption = "fuente: Buenos Aires Data",
     fill = "cant. en miles")
 ```

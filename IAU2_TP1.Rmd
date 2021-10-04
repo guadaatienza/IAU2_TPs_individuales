@@ -32,7 +32,7 @@ datos_censales_xradio <- st_read("data/caba_radios_censales.geojson")
 * ***Comunas***:
 
 ```{r}
-comunas_caba <- st_read("data/barrios_caba.geojson")
+comunas_caba <- st_read("data/comunas_caba.geojson")
 ```
 
 Como puede advertirse, se trata de tres dataframes de datos espaciales. El primero de ellos contiene datos de las ***villas, asentamientos, conjuntos habitacionales y núcleos habitacionales transitorios (NHT)*** de la ciudad de Buenos Aires; el segundo, ***datos sociodemográficos*** correspondienteas al último censo para cada uno de los radios censales de la ciudad; y, finalmente, el tercero, las geometrías de los polígonos de sus ***comunas***. Según puede apreciarse dos de nuestros dataframes tienen un sistama de coordenadas de referencia (CRS) geodésicos y uno de ellos, proyectado (ya que no lo hemos conseguido en su versión geodésica). Como en este trabajo estaremos uniendo datos a través de sus ubicaciones espaciales, precisamos compatibilizar los CRS de los dataframes con los que trabajaremos entre sí:
@@ -48,15 +48,21 @@ Una vez que contamos con dataframes con el mismo CRS, podemos realizar operacion
 * En la tabla que sigue a continuación, por ejemplo, podemos observar la ***cantidad*** de barrios percarios e informales por **comuna**, según su **tipo**:   
 
 ```{r}
+barriosp <- barriosp %>% 
+            clean_names() %>%
+            group_by(nombre,tipo_asent) %>% 
+            summarise(superficie=sum(superficie))
+            
 resumen_barrios_xcomuna  <-barriosp %>% 
                          st_join(comunas_caba) %>% 
                          clean_names() %>%    
                          st_set_geometry(NULL) %>% 
-                         group_by(comuna, tipo_asent) %>% 
+                         group_by(comunas,tipo_asent) %>% 
                          summarise(cantidad=n()) %>% 
                          pivot_wider(names_from=tipo_asent, 
                                      values_from=cantidad) %>% 
-                         mutate(comuna=paste("Comuna ", comuna)) %>% 
+                         mutate(comunas=paste("Comuna ", comunas)) %>% 
+                         rename(comuna=comunas) %>% 
                          mutate_all(~replace(., is.na(.), 0))
 
 resumen_barrios_xcomuna
@@ -67,9 +73,9 @@ resumen_barrios_xcomuna
 ```{r}
 resumen_barrios_xtipo  <-barriosp %>% 
                          st_set_geometry(NULL) %>%
-                         rename(tipo=TIPO_ASENT) %>%  
+                         rename(tipo=tipo_asent) %>%  
                          group_by(tipo) %>% 
-                         summarise(cantidad=n(), superficie=sum(Superficie))
+                         summarise(cantidad=n(), superficie=sum(superficie))
 
 resumen_barrios_xtipo
 ```
@@ -85,7 +91,8 @@ datos_censales_barriosp <- datos_censales_xradio %>%
                            summarise(poblacion=sum(poblacion), 
                                      hogares=sum(hogares),
                                      viviendas=sum(viviendas)) %>% 
-                           mutate(comuna=paste("Comuna ", comuna))   
+                           mutate(comuna=paste("Comuna ", comuna)) %>% 
+                           arrange(desc(poblacion))
 datos_censales_barriosp
 ```
 
