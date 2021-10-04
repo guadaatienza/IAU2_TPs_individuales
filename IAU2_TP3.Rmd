@@ -5,3 +5,70 @@ date: "10/3/2021"
 output: html_document
 ---
 
+En este trabajo volveremos sobre los datos relativos al acceso informal al hábitat urbano en la Ciudad de Buenos Aires que exploramos en el TP1. Utilizaremos los tres mismos datasets espaciales del portal de datos abiertos del GCBA. En esta segunda parte, trabajaremos con visualizaciones, para lo cual será necesario realizar alguans transformaciones adicionales sobre nuestros datos.
+
+Comenzamos activando los paquetes que utilizaremos para importar, ordenar,  transformar y visualizar estos datos:
+
+```{r}
+library(tidyverse)
+library(janitor)
+library(sf)
+library(ggmap)
+```
+
+```{r}
+barriosp <- st_read("data/barrios_vulnerables_caba/barrios_vulnerables.shp")
+barriosp <- st_transform(barriosp, crs=4326)
+datos_censales_xradio <- st_read("data/caba_radios_censales.geojson")
+comunas_caba <- st_read("data/barrios_caba.geojson")
+```
+```{r}
+poligono_barriosp <- st_union(barriosp)
+datos_censales_bp <- datos_censales_xradio %>%  
+                     st_intersection(poligono_barriosp) %>% 
+                     st_set_geometry(NULL) %>%
+                     clean_names() %>% 
+                     mutate(comuna=paste("Comuna ", comuna)) 
+```
+
+```{r}
+tabla_resumen <- datos_censales_bp %>%  
+                 group_by(comuna) %>% 
+                 summarise(poblacion=sum(poblacion), 
+                           hogares=sum(hogares),
+                           viviendas=sum(viviendas)) %>%
+                 arrange(desc(poblacion))
+tabla_resumen
+```
+
+```{r fig.width=12, fig.height=6}
+ggplot()+
+   geom_bar(data=datos_censales_bp %>% 
+              group_by(comuna) %>%
+              summarise(poblacion=sum(poblacion)/1000),
+              mapping=aes(y=poblacion, x=fct_reorder(comuna,desc(poblacion))),
+              stat="identity", fill="grey75", width = 0.8)+
+   geom_bar(data=datos_censales_bp %>% 
+            group_by(comuna) %>%
+            summarise(hogares=sum(hogares)/1000,
+                      viviendas=sum(viviendas)/1000) %>%
+            pivot_longer(cols = 2:3, 
+                         names_to ="indicador", values_to = "cantidad"), 
+            mapping=aes(fill=indicador, 
+                        y=cantidad, x=comuna),
+            stat="identity", position="dodge", width = 0.8) +
+    scale_fill_viridis_d()+
+    theme_minimal() +
+    theme(plot.title = element_text(face="bold", size=15)) +
+    theme(axis.title.x = element_text(face="bold", colour="darkgray", size=12)) +
+    theme(axis.title.y = element_text(face="bold", colour="darkgray", size=12)) +
+    labs(title = "Acceso informal al hábitat urbano en CABA", 
+    subtitle = "Viviendas, hogares y población de villas, asentamientos, conjuntos habitacionales y NHT por comuna",
+    x = "Comuna",
+    y = "Población (en miles de habitantes",
+    caption = "fuente: Buenos Aires Data",
+    fill = "cant. en miles")
+```
+
+
+  
