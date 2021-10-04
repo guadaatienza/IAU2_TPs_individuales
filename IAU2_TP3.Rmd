@@ -5,23 +5,32 @@ date: "10/3/2021"
 output: html_document
 ---
 
+## **Introducción**
 En este trabajo volveremos sobre los datos relativos al acceso informal al hábitat urbano en la Ciudad de Buenos Aires que exploramos en el TP1. Utilizaremos los tres mismos datasets espaciales del portal de datos abiertos del GCBA. En esta segunda parte, trabajaremos con visualizaciones, para lo cual será necesario realizar alguans transformaciones adicionales sobre nuestros datos.
 
-Comenzamos activando los paquetes que utilizaremos para importar, ordenar,  transformar y visualizar estos datos:
+Comenzamos activando los paquetes que utilizaremos para importar, ordenar,  transformar y visualizar estos datos e importando los sets de datos a utilizar:
 
 ```{r}
 library(tidyverse)
 library(janitor)
 library(sf)
 library(ggmap)
+library(patchwork)
 ```
 
 ```{r}
 barriosp <- st_read("data/barrios_vulnerables_caba/barrios_vulnerables.shp")
 barriosp <- st_transform(barriosp, crs=4326)
 datos_censales_xradio <- st_read("data/caba_radios_censales.geojson")
-comunas_caba <- st_read("data/barrios_caba.geojson")
+comunas_caba <- st_read("data/comunas_caba.geojson")
 ```
+
+## **Visualizaciones**
+
+### ***i) Gráfico de Barras***
+
+En el gráfico de barras que se presenta a continuación puede verse que la mayor proporción de población, hogares y viviendas de villas, asentamientos, conjuntos habitacionales y núcleos habitacionales transitorios (NHT) se concentra en las comunas 8, 4, 7, 1 y 9.
+
 ```{r}
 poligono_barriosp <- st_union(barriosp)
 datos_censales_bp <- datos_censales_xradio %>%  
@@ -29,16 +38,6 @@ datos_censales_bp <- datos_censales_xradio %>%
                      st_set_geometry(NULL) %>%
                      clean_names() %>% 
                      mutate(comuna=paste("Comuna ", comuna)) 
-```
-
-```{r}
-tabla_resumen <- datos_censales_bp %>%  
-                 group_by(comuna) %>% 
-                 summarise(poblacion=sum(poblacion), 
-                           hogares=sum(hogares),
-                           viviendas=sum(viviendas)) %>%
-                 arrange(desc(poblacion))
-tabla_resumen
 ```
 
 ```{r fig.width=12, fig.height=6}
@@ -62,7 +61,7 @@ ggplot()+
     theme(plot.title = element_text(face="bold", size=15)) +
     theme(axis.title.x = element_text(face="bold", colour="darkgray", size=12)) +
     theme(axis.title.y = element_text(face="bold", colour="darkgray", size=12)) +
-    labs(title = "Acceso informal al hábitat urbano en CABA", 
+    labs(title = "Gráfico 1. Acceso informal al hábitat urbano en CABA", 
     subtitle = "Viviendas, hogares y población de villas, asentamientos, conjuntos habitacionales y NHT por comuna",
     x = "Comuna",
     y = "Población (en miles de habitantes",
@@ -70,5 +69,111 @@ ggplot()+
     fill = "cant. en miles")
 ```
 
+Estas cinco comunas mencionadas reunen más del 85% de la población de barrios precarios e informales de la ciudad. Sólo la Comuna 8 registra casi la mitad de la población, hogares y viviendas totales de estos barrios, lo cual representa un 75% más que la comuna que le sigue y más del doble que cualquier otra. Ello da cuenta de que el acceso informal al hábitat urbano tiene una clara localización, que nos habla de una importante segregación socioespacial. 
 
-  
+La tabla que se presenta a continuación muestra los datos de población, hogares y viviendas para cada una de las comunas de la ciudad:
+
+```{r}
+tabla_resumen <- datos_censales_bp %>%  
+                 group_by(comuna) %>% 
+                 summarise(poblacion=sum(poblacion), 
+                           hogares=sum(hogares),
+                           viviendas=sum(viviendas)) %>%
+                 arrange(desc(poblacion))
+tabla_resumen
+```
+
+Si bien en el presente análisis no nos estamos enfocando en una comparación de los datos sociodemográficos de estos barrios con los del resto de la ciudad, en el gráfico precedente puede apreciarse que en varias comunas la cantidad de hogares se encuentra por encima de la cantidad de viviendas, es decir, se registra hacinamiento de hogares; lo cual contrasta con la existencia de vivienda ociosa presente en la ciudad cuando se la considera de conjunto. 
+Para cuantificar esta impresión a simple vista, a continuación calculamos el tamaño promedio del hogar y el promedio de hogares por vivienda en villas y asentamientos y para el conjunto de la ciudad.
+
+* Promedio de hogares por vivienda en barrios precarios e informales:
+
+```{r}
+prom_hogares_por_vivienda <- sum(tabla_resumen$hogares)/sum(tabla_resumen$viviendas)
+prom_hogares_por_vivienda     
+```
+
+* Promedio de hogares por vivienda en CABA:
+
+```{r}
+prom_hogaresxvivienda_caba <- sum(datos_censales_xradio$HOGARES)/sum(datos_censales_xradio$VIVIENDAS)
+prom_hogaresxvivienda_caba 
+```
+* Tamaño promedio del hogar en barrios precarios e informales:
+
+```{r}
+tamaño_prom_h <- sum(datos_censales_bp$poblacion)/sum(datos_censales_bp$hogares)
+tamaño_prom_h
+```
+
+* Tamaño promedio del hogar en CABA:
+```{r}
+tamaño_prom_h_caba <- sum(datos_censales_xradio$POBLACION)/sum(datos_censales_xradio$HOGARES)
+tamaño_prom_h_caba  
+```
+En efecto, ambos indicadores resultan mayores para las villas, asentamientos, complejos habitacionales y NHT que para la ciudad tomada en su conjunto. Si bien para un análisis más completo del grado de hacinamiento en la ciudad deberíamos considerar el promedio de personas por dormitorio y/o por superficie, estos indicadores ya nos dan una idea de que el hacinamiento se concentra en mayor proporción, en promedio, en estos barrios. 
+
+### ***ii) Mapa Coroplético***
+
+A continuación mapearemos estos mismos datos sobre la ciudad de buenos aires. En los mapas de coropletas que se presetan más abajo puede observarse las cantidades de viviendas de viviendas emplazadas así como de hogares y población que habita en las villas, asentamientos, conjuntos habitacionales y NHT de la ciudad de Buenos Aires por comuna.
+
+```{r}
+comunas_caba <- comunas_caba %>% 
+                clean_names() %>% 
+                mutate(comunas=paste("Comuna ", comunas)) %>% 
+                rename(comuna=comunas)
+
+poblacion_bp_xcomuna <- datos_censales_bp %>% 
+                        group_by(comuna) %>% 
+                        summarise(poblacion=sum(poblacion))
+poblacion_bp_xcomuna_geo <- comunas_caba %>% 
+                            left_join(poblacion_bp_xcomuna, by="comuna") %>% 
+                            select(comuna, poblacion)
+
+datos_bp_xcomuna <- datos_censales_bp %>% 
+                    group_by(comuna) %>% 
+                    summarise(hogares=sum(hogares),
+                              viviendas=sum(viviendas)) %>% 
+                    pivot_longer(cols = 2:3, 
+                                 names_to ="indicador", values_to = "cantidad")
+datos_bp_xcomuna_geo <- comunas_caba %>% 
+                        left_join(datos_bp_xcomuna, by="comuna") %>% 
+                        select(comuna, indicador, cantidad)
+```
+
+```{r}
+bbox_comunas <- as.numeric(st_bbox(comunas_caba))
+mapa_caba <- get_stamenmap(bbox = bbox_comunas, maptype = "terrain-lines", zoom=12) 
+```
+
+```{r}
+mapa1 <- ggmap(mapa_caba)+ 
+  geom_sf(data=poblacion_bp_xcomuna_geo, aes(fill=poblacion/1000), inherit.aes = FALSE, alpha=0.9)+
+  scale_fill_viridis_c() +
+  theme_void() +
+    theme(plot.title = element_text(face="bold", size=15)) +
+    labs(title = "Mapa 1. Segregacion espacial en CABA", 
+    subtitle = "Poblacion en barrios precarios e informales por comuna",
+    caption = "fuente: Buenos Aires Data",
+    fill = "cant. en miles")
+```
+
+```{r}
+mapa2 <- ggmap(mapa_caba)+ 
+  geom_sf(data=datos_bp_xcomuna_geo, aes(fill=cantidad), inherit.aes = FALSE, alpha=0.9)+
+  scale_fill_viridis_c() +
+  theme_void() +
+    theme(plot.title = element_text(face="bold", size=15)) +
+    labs(title = "Mapa 2. Segregacion espacial en CABA", 
+    subtitle = "Cantidad de viviendas y hogares en barrios
+    precarios e informales por comuna",
+    caption = "fuente: Buenos Aires Data",
+    fill = NULL)+
+    facet_wrap(~indicador)
+```
+
+```{r, fig.width=5, fig.height=9}
+(mapa1/mapa2)
+```
+
+El mapa coroplético permite identificar patrones espaciales con facilidad. Es así que nos muestra mucho más inmediantamente que el gráfico de barras que la concentración de la población que vive en villas y asentamientos se localiza en la zona sur y este de la ciudad, poniendo de manifiesto la existencia de un patrón evidente de segregación socioespacial.  
