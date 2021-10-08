@@ -4,3 +4,57 @@ author: "Guadalupe Atienza Rela"
 date: "3/10/2021"
 output: html_document
 ---
+
+En este segundo trabajo realizaremos el escrapeo de una página de wikipedia.
+Comezamos por activar las librerías a utilizar:
+
+```{r}
+library(tidyverse)
+library(rvest)
+```
+
+Seguidamente, creamos un objeto con el nombre del url de la entrada de wikipedia:
+
+```{r}
+url <- "https://es.wikipedia.org/wiki/Gabinete_de_Argentina"
+```
+
+Luego, leemos la ruta del url mediante la función read_hatml() y, una vez identificado el elemento con el que vamos a trabajar a través de la herramienta "inspect element", lo traemos con la función read_nodes() y html_table(), ya que en este caso, se trata de una tabla:
+
+```{r}
+tabla_ministerios <- read_html(url) %>%
+                     html_nodes(xpath = '//*[@id="mw-content-text"]/div[1]/table[2]') %>% 
+                     html_table(fill = T)
+```
+
+Como el objeto que trajimos es una lista de un elemento, debemos extraerlo:
+
+```{r}
+tabla_ministerios <- tabla_ministerios[[1]] %>% 
+                     rename("Denominaciones anteriores"=2)
+```
+
+Repetimos el mismo procedimiento para traer una segunda tabla de la página:
+
+```{r}
+tabla_ministrxs <-read_html(url) %>%
+                  html_nodes(xpath = '//*[@id="mw-content-text"]/div[1]/table[4]') %>% 
+                  html_table(fill = T)
+```
+
+```{r}
+tabla_ministrxs <- tabla_ministrxs[[1]] 
+```
+
+Utilizamos la función select() para quedarnos con las columnas que contienen valores (ya que la tabla original inluía imágenes que al no ser reconocidas por las funciones utilizadas fueron traídas como "NA") Y, finalmente, unimos ambas tablas mediante la función left_join():
+
+```{r}
+tabla_ministrxs <- tabla_ministrxs %>% 
+                   select(1, 3, 5, 7, 8) %>%
+                   left_join(tabla_ministerios, by=c("Ministerio"="Ministerios de la Nación Argentina"))
+tabla_ministrxs
+                  
+```
+ 
+
+ 
